@@ -28,6 +28,9 @@ K-OS не пытается заменить ядро операционной с
 6. **Локальное и синхронизируемое состояние разделены семантически.** Приложение выбирает класс данных, а не физический каталог.
 7. **Platform provider реализует механизм, driver управляет ресурсом, service реализует функцию.** Эти роли не смешиваются.
 8. **Фоновая работа преимущественно событийная.** Постоянные пользовательские процессы являются исключением и требуют отдельного разрешения.
+9. **Установка и исполнение разделены.** Приложение может быть установлено в профиле пользователя, но отдельный компонент исполняется только на совместимом и выбранном runtime узле.
+10. **Неоднородность узлов является частью модели.** Наличие UI, фонового исполнения, оборудования и локальных данных на конкретном устройстве не предполагается автоматически.
+11. **Контракты важнее реализаций.** Публичные capability interfaces, форматы package и логические классы состояния не зависят от конкретного WebView, WASM runtime, database engine или network transport.
 
 ## 3. Общая схема
 
@@ -53,8 +56,8 @@ K-OS не пытается заменить ядро операционной с
 └─────────────────────────┬───────────────────────────┘
                           │ typed provider contracts
 ┌─────────────────────────▼───────────────────────────┐
-│                Platform Providers                   │
-│ HTTP │ WebSocket │ files │ MQTT │ GPIO │ Git │ media│
+│           Host Adapters / Platform Providers        │
+│ files │ sockets │ BLE │ key store │ media │ power  │
 └─────────────────────────┬───────────────────────────┘
                           │
                OS / network / hardware
@@ -76,7 +79,7 @@ K-OS использует гибридную архитектуру. Довер�
 
 | Область | Основная реализация |
 |---|---|
-| Platform providers | Rust |
+| Host adapters / platform providers | Rust |
 | Drivers / resource brokers | Rust |
 | Permissions и capability handles | Rust |
 | Package manager и application runtime | Rust |
@@ -116,6 +119,26 @@ TypeScript SDK является удобной типизированной об
 
 Открытое desktop-окно может использоваться для оптимизации, но не является архитектурной гарантией доступности процесса.
 
+### 3.2. Поддерживаемые платформы
+
+Основными целевыми платформами являются:
+
+- Linux;
+- Windows;
+- Android.
+
+Архитектурные контракты не должны без необходимости зависеть от особенностей этих трёх платформ, однако текущая реализация и MVP не обязаны поддерживать Apple platforms. macOS и iOS могут быть добавлены в будущем как отдельные platform ports после проверки ограничений исполнения, распространения пакетов и фоновой работы.
+
+Для будущей переносимости достаточно соблюдать следующие правила:
+
+- platform-specific код находится за host adapter contracts;
+- manifest позволяет объявить совместимость component с платформой и архитектурой;
+- service API не содержит Linux-, Windows- или Android-specific типов;
+- отсутствие capability на платформе является нормальным состоянием;
+- runtime не предполагает наличие process spawning, постоянного background execution или общей POSIX filesystem.
+
+Не требуется заранее реализовывать Apple adapters, альтернативный mobile runtime или специальные ограничения App Store. Возможность будущего port обеспечивается границами контрактов, а не неиспользуемым кодом.
+
 ## 4. Термины
 
 ### 4.1. Package
@@ -137,28 +160,50 @@ Package — подписываемая и версионируемая един�
 
 Component — единица запуска внутри package. У компонентов одного пакета могут быть разные точки входа, условия активации, ограничения ресурсов и жизненные циклы. Все они наследуют идентичность пакета, но получают только необходимые им permissions.
 
-### 4.3. Platform Provider
+### 4.3. Profile, Node, Installation и Placement
 
-Platform provider — нижний платформозависимый слой, реализующий конкретный технический механизм.
+`Profile` представляет персональную среду пользователя: набор установленных packages, grants, replicated namespaces и доверенных устройств.
+
+`Node` — конкретная установка K-OS на устройстве. Node имеет собственную identity, набор доступных capabilities, platform constraints, локальное состояние и статус доступности.
+
+`Package installation` — desired state профиля: пользователь считает package установленным в своей среде. Это не означает, что все его артефакты обязаны быть загружены и все components способны исполняться на каждом node.
+
+`Placement` — решение о том, где может и должен исполняться component. Для component различаются состояния:
+
+```text
+available     package известен профилю
+materialized  необходимые артефакты присутствуют на node
+compatible    node удовлетворяет требованиям component
+placed        runtime выбрал node для исполнения
+running       существует конкретный execution
+```
+
+UI приложения может быть доступен на Android и desktop, а hardware worker — только на Linux node с требуемым устройством. Runtime обязан представлять такую ситуацию явно, а не имитировать локальную доступность компонента.
+
+### 4.4. Host Adapter / Platform Provider
+
+Host adapter, также называемый platform provider, — нижний платформозависимый слой, реализующий примитив ОС или устройства. В новых именах предпочтителен термин `host adapter`; `platform provider` сохраняется как допустимое общее название роли.
 
 Примеры контрактов:
 
-- `HttpProvider`;
-- `WebSocketProvider`;
 - `FileSystemProvider`;
-- `MqttProvider`;
+- `SocketProvider`;
+- `SecureKeyStoreProvider`;
+- `BackgroundSchedulerProvider`;
+- `BluetoothLeProvider`;
 - `GpioProvider`;
 - `ProcessProvider`;
-- `MediaProvider`;
-- `GitProvider`.
+- `NotificationProvider`;
+- `MediaCaptureProvider`.
 
 У разных видов providers нет общего универсального API. Общим является контракт между реализациями одного вида provider:
 
 ```text
-HttpProvider
-├── DesktopHttpProvider
-├── MobileHttpProvider
-└── MockHttpProvider
+FileSystemProvider
+├── LinuxFileSystemProvider
+├── WindowsFileSystemProvider
+├── AndroidFileSystemProvider
+└── MockFileSystemProvider
 ```
 
 Platform provider:
@@ -170,9 +215,13 @@ Platform provider:
 - не управляет распределением ресурса между потребителями;
 - не отвечает за синхронизацию пользовательского состояния.
 
+Adapter также сообщает runtime свои возможности и ограничения: availability, поддерживаемые режимы, лимиты payload/streaming, background guarantees и стоимость использования ресурса, если она известна.
+
+HTTP, WebSocket и MQTT являются переносимыми protocol engines или системными services поверх network primitives. Git является library, service или изолированным sidecar. Они не считаются platform providers только потому, что используют платформенные API. Media может включать как низкоуровневый platform adapter захвата/воспроизведения, так и отдельный service обработки данных.
+
 В первой версии providers являются встроенными Rust-компонентами ядра.
 
-### 4.4. Driver / Resource Broker
+### 4.5. Driver / Resource Broker
 
 Driver, или resource broker, превращает platform provider в управляемый системный ресурс.
 
@@ -184,11 +233,11 @@ Driver отвечает за:
 - очереди, backpressure и rate limits;
 - reconnect, retry и timeout policy;
 - сбор метрик и статистики;
-- проверку permissions;
+- проверку валидности, scope и ownership выданных capability handles;
 - выдачу ограниченных capability handles;
 - платформенные ограничения времени жизни ресурса.
 
-Например, `MqttProvider` открывает соединение и передаёт пакеты. `MqttDriver` переиспользует соединения, маршрутизирует подписки, восстанавливает связь и ведёт учёт потребителей.
+Например, socket host adapter открывает низкоуровневое соединение. Network broker управляет соединением и backpressure, а MQTT service маршрутизирует подписки и реализует семантику протокола.
 
 Приложение не получает прямую ссылку на driver. Оно получает непрозрачный handle:
 
@@ -202,9 +251,11 @@ let connection = ctx
 
 Handle связан с package ID, component ID, permissions и временем жизни владельца. Освобождение владельца закрывает или возвращает ресурс в управляемый pool.
 
+Решение о выдаче права принимает централизованный authorization/capability service на входе в системный API. Driver не интерпретирует manifest и пользовательские grants самостоятельно. Повторная проверка ограничений handle в driver является defense-in-depth и защитой конкретного ресурса.
+
 В первой версии drivers являются встроенными. Устанавливаемые native drivers откладываются до появления подтверждённых сценариев нового оборудования или протоколов.
 
-### 4.5. Service
+### 4.6. Service
 
 Service — высокоуровневая системная функция, построенная поверх drivers и других services.
 
@@ -226,7 +277,7 @@ Service является runtime-ролью, но не отдельной обя
 
 Системные services запускаются ядром в определённом порядке и могут иметь расширенные внутренние права. Пользовательский worker не становится системным service и не получает системных прав из-за фонового режима работы.
 
-### 4.6. Worker
+### 4.7. Worker
 
 Worker — backend-компонент пользовательского package. Он предназначен для сложной логики, фоновой обработки, интеграций и реакций на события.
 
@@ -284,6 +335,7 @@ Lease ограничивает:
 - поведение при переходе устройства в sleep.
 
 Гарантии зависят от платформы. Код не должен предполагать, что desktop- и mobile-устройства дают одинаковое время фонового исполнения.
+Lease выражает разрешение и запрошенный runtime budget, но не обещание запуска в точное время или непрерывного исполнения. Android host adapter отображает системные background opportunities в общую модель scheduler.
 
 ### 5.4. Отказ от пользовательских daemons
 
@@ -344,6 +396,9 @@ Worker запрашивает background lease при необходимости
 id = "com.example.music"
 version = "1.0.0"
 
+[package.compatibility]
+platforms = ["linux", "windows", "android"]
+
 [[components]]
 id = "main-ui"
 type = "web-ui"
@@ -354,6 +409,12 @@ id = "library-indexer"
 type = "worker"
 entry = "workers/indexer.wasm"
 activation = ["app-start", "files-changed"]
+
+[components.placement]
+scope = "per-user"
+requires = ["files.user", "compute.background"]
+prefers = ["power.ac", "network.unmetered"]
+remote = "allowed"
 
 [[components]]
 id = "scan-library"
@@ -383,6 +444,9 @@ capabilities = [
 - декларативные activation events;
 - версии capability contracts;
 - декларация поддерживаемых платформ;
+- platform-specific variants артефактов при сохранении общего component contract;
+- требования и предпочтения placement для каждого component;
+- поведение при отсутствии локально совместимого runtime;
 - декларация миграций данных;
 - криптографическая подпись пакета.
 
@@ -408,7 +472,7 @@ device.location
 Каждый защищённый вызов содержит или восстанавливает следующий контекст:
 
 ```text
-user ID
+profile ID
 device ID
 package ID
 component ID
@@ -429,6 +493,16 @@ Capability handle должен быть:
 - привязанным к владельцу;
 - автоматически освобождаемым;
 - непригодным для передачи другому package без явного системного механизма.
+
+Модель различает:
+
+- permission, запрошенный package в manifest;
+- grant, подтверждённый пользователем или system policy на конкретном node;
+- runtime capability, выданную конкретному execution;
+- resource handle, ограниченный конкретным объектом и операциями;
+- delegation capability для явно разрешённого локального или удалённого вызова.
+
+Право компонента на локальный ресурс не становится правом удалённого node автоматически. Delegation всегда ограничивает получателя, операции, scope, deadline и возможность дальнейшей передачи.
 
 ## 9. Взаимодействие services и компонентов
 
@@ -476,6 +550,10 @@ app.storage.secrets
 
 Физическое хранение является деталью реализации storage service. Оно может измениться без изменения API приложений.
 
+Публичный storage API не должен сводить все классы данных к одному неуточнённому CRUD или общей SQL database. Replicated state в дальнейшем получит несколько consistency profiles, а приложение будет выбирать требуемую семантику данных, не конкретный replication algorithm.
+
+Подтверждение replicated mutation означает, что локальное изменение и durable запись для будущей репликации сохранены атомарно. Реализация не должна сначала изменять обычную database, а затем ненадёжно уведомлять sync service. Точный mutation log, conflict model и database engine описываются отдельными design documents.
+
 `localStorage`, IndexedDB и browser cache:
 
 - считаются локальными и несинхронизируемыми;
@@ -489,7 +567,7 @@ app.storage.secrets
 
 Состояние приложения может быть общим между устройствами, но процессы, окна, соединения и аппаратные ресурсы всегда принадлежат конкретному устройству.
 
-Для jobs и workers manifest или scheduler задаёт execution scope:
+Для jobs и workers manifest или scheduler задаёт execution scope. Scope описывает требуемую кардинальность, а placement отдельно выбирает подходящий node:
 
 | Scope | Семантика |
 |---|---|
@@ -498,6 +576,8 @@ app.storage.secrets
 | `per-user` | Логически один экземпляр пользователя |
 | `cluster-singleton` | Одно активное выполнение среди устройств |
 | `leader-elected` | Выполнение на выбранном устройстве-лидере |
+
+Placement учитывает обязательные `requires`, необязательные `prefers`, platform compatibility, локальность необходимых данных и разрешение на remote execution. Отсутствие подходящего node возвращает явное состояние `not-placed`, а не запускает component с урезанными неоговорёнными возможностями.
 
 Распределённый scheduler должен учитывать:
 
@@ -535,6 +615,10 @@ Distributed Runtime
 - lease с fencing token — для временного единственного владельца;
 - leader election — когда работу должно координировать одно устройство;
 - строгий consensus — только для данных, которым действительно необходим единый порядок изменений.
+
+Lease, защищающий внешний side effect, используется вместе с fencing token, который проверяет владелец ресурса. Само по себе истечение lease не способно остановить старого лидера после network partition.
+
+Предварительные границы network layer и replication вынесены в [network-and-replication.md](./network-and-replication.md).
 
 Удалённые jobs должны быть idempotent или использовать ключи дедупликации. Потеря устройства либо lease рассматривается как нормальная ситуация, а не исключительное завершение всей системы.
 
@@ -591,9 +675,15 @@ Frontend не передаёт собственный package ID для дост
 
 WebView является дополнительной границей изоляции, но не единственной security boundary. Даже при компрометации frontend-кода Rust bridge обязан разрешать только выданные capabilities.
 
+Отдельный WebView не считается гарантированной процессной sandbox: способ размещения WebView по OS processes зависит от платформы и реализации движка. Основной security boundary остаётся в Rust capability gateway.
+
+Для пользовательских UI предпочтителен один минимальный K-OS bridge entry point вместо выдачи приложению набора произвольных Tauri commands. Tauri capabilities используются как внешний слой защиты системных окон, а динамические package permissions и caller identity принадлежат runtime K-OS.
+
+Загрузка remote executable scripts, произвольная navigation и наследование системного origin запрещаются. CSP и bridge session формируются доверенным runtime. После navigation или reload создаётся новая сессия, а старые handles отзываются.
+
 ### 13.2. Изоляция workers
 
-Backend приложения исполняется как WebAssembly Component. Worker получает только явно импортированные K-OS interfaces и по умолчанию не получает полного доступа WASI к сети, процессам или файловой системе.
+Основным execution backend приложения является WebAssembly Component. Worker получает только явно импортированные K-OS interfaces и по умолчанию не получает полного доступа WASI к сети, процессам или файловой системе.
 
 Runtime ограничивает:
 
@@ -605,6 +695,8 @@ Runtime ограничивает:
 - набор импортированных capabilities.
 
 Язык реализации worker не является частью security model. Rust рекомендуется первым, но в будущем может поддерживаться любой язык, способный собрать совместимый WebAssembly Component.
+
+Публичный component contract не зависит от конкретного WASM engine. Runtime в будущем может использовать совместимый локальный engine, встроенную доверенную реализацию или remote execution proxy. Это позволяет добавлять новые platform ports без изменения package и service contracts; реализовывать такие backends заранее не требуется.
 
 Permissions определяют доступ, а quotas — объём использования разрешённого доступа. Это разные механизмы и оба применяются runtime.
 
@@ -645,6 +737,7 @@ Driver собирает технические метрики ресурса, se
 В MVP входят:
 
 - Tauri shell;
+- Linux, Windows и Android platform ports;
 - встроенные Rust platform providers;
 - встроенные drivers/resource brokers;
 - встроенные системные services;
@@ -665,7 +758,9 @@ Driver собирает технические метрики ресурса, se
 - пользовательские постоянно работающие daemons;
 - полностью прозрачный distributed RPC;
 - универсальный интерфейс для всех видов providers;
-- обещание одинаковых фоновых гарантий на desktop и mobile.
+- обещание одинаковых фоновых гарантий на desktop и mobile;
+- macOS и iOS platform ports и связанный с ними код;
+- одинаковое размещение всех components на всех nodes.
 
 ## 17. Рекомендуемая структура Rust workspace
 
@@ -676,9 +771,10 @@ crates/
 ├── kernel/                 # запуск и координация системных компонентов
 ├── contracts/              # IDL, DTO, версии публичных контрактов
 ├── capabilities/           # permissions, handles, caller context
-├── providers/              # provider traits
-├── providers-desktop/      # desktop implementations
-├── providers-mobile/       # mobile implementations
+├── host-adapters/          # platform adapter traits
+├── host-linux/             # Linux implementations
+├── host-windows/           # Windows implementations
+├── host-android/           # Android implementations
 ├── drivers/                # resource brokers
 ├── services/               # системные services
 ├── storage/                # namespaces и persistence
@@ -695,6 +791,8 @@ crates/
 Архитектурное решение считается совместимым с этим документом, если:
 
 - приложение не может обойти capability API;
+- package может быть установлен в profile без требования исполнять каждый component на каждом node;
+- несовместимый или недоступный component получает явное placement state;
 - UI можно закрыть без обязательной остановки разрешённой фоновой задачи;
 - worker можно остановить и позже возобновить из checkpoint;
 - provider можно заменить платформенной реализацией без изменения service API;
@@ -716,15 +814,17 @@ crates/
 - выбор WebAssembly runtime и поддерживаемая версия WASI;
 - модель миграций replicated state;
 - distributed scheduler, leader election и leases;
+- component placement и remote capability delegation;
 - обновление и rollback packages;
 - резервное копирование и восстановление;
 - модель межпакетного обмена данными;
-- threat model и уровни доверия native extensions.
+- threat model и уровни доверия native extensions;
+- будущие macOS/iOS platform ports, если будет принято решение об их поддержке.
 
 ## 20. Краткое распределение ответственности
 
 ```text
-Platform provider  — как выполнить платформенную операцию.
+Host adapter       — как выполнить платформенную операцию.
 Driver             — как безопасно владеть и делить ресурс.
 Service            — какую системную функцию предоставить.
 Package            — что устанавливает пользователь.
@@ -732,6 +832,7 @@ Web UI             — что работает в окне.
 Worker             — backend приложения, активируемый runtime.
 Capability API     — единственный путь к защищённым возможностям.
 Storage namespace  — семантическое место хранения состояния.
+Placement          — где допустимо и предпочтительно исполнять component.
 ```
 
 Главное следствие этой модели: frontend и backend могут принадлежать одному приложению, но имеют независимый жизненный цикл. Backend оформляется как worker внутри package, а не как отдельно устанавливаемый пользовательский service. Системные services остаются частью доверенной платформы K-OS.
