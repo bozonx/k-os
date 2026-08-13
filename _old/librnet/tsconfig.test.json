@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "rootDir": ".",
+    "types": ["jest", "node"],
+    "verbatimModuleSyntax": false,
+    "paths": { "@/*": ["./src/*"] }
+  },
+  "exclude": [
+    "src/_not_used",
+    "distr",
+    "__old-composition",
+    "_old",
+    "build",
+    "_testData",
+    "node_modules"
+  ],
+  "extends": "./tsconfig.json",
+  "include": ["src/**/*", "test/**/*"]
+}
