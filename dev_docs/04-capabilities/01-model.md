@@ -26,8 +26,12 @@ files.external.<mount-id>.write
 
 net.http:api.example.com
 net.ws:example.com
+net.listen:<port>
 net.socket.tcp
 mqtt.connect
+
+api.export
+api.call:<service>
 
 events.subscribe
 events.publish

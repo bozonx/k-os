@@ -3,7 +3,7 @@
 Статус: перенесено из прежних документов, требует ревизии.  
 Назначение: зафиксировать вертикаль слоёв, control plane, направление зависимостей и границу между Rust, TypeScript и WebAssembly.
 
-Связанные документы: [принципы](../01-overview/03-principles.md), [host adapters](./04-host-adapters.md), [drivers](./05-drivers.md), [services](./06-services.md).
+Связанные документы: [принципы](../01-overview/03-principles.md), [host adapters](./04-host-adapters.md), [drivers](./05-drivers.md), [services](./06-services.md), [базовый стек](./12-base-stack.md).
 
 
 ```text

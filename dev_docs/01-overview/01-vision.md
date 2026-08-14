@@ -56,6 +56,8 @@ Host adapters       платформозависимые примитивы ОС
 
 Подробнее: [слои системы](../02-architecture/01-layers.md),
 [host adapters](../02-architecture/04-host-adapters.md),
+[драйверы](../02-architecture/05-drivers.md),
+[базовый стек HTTP, WebSocket и файлов](../02-architecture/12-base-stack.md),
 [модель расширяемости](../02-architecture/09-extensibility.md).
 
 ### Приложения

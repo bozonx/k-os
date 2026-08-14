@@ -83,6 +83,81 @@ entry = "workers/indexer.wasm#scan"
 - декларация потребности в материализации данных, влияющая на selective sync;
 - криптографическая подпись пакета.
 
+## Декларации, влияющие на другие подсистемы
+
+Помимо компонентов и прав манифест содержит объявления, от которых зависит поведение
+хранилища, сети и оболочки. Они собраны здесь, потому что каждое из них проверяется при
+установке, а не во время работы.
+
+### Схема данных
+
+```toml
+[[collections]]
+name = "tracks"
+type = "document"
+namespace = "app.data.replicated"
+schema-version = 3
+
+  [[collections.indexes]]
+  fields = ["artist", "title"]
+
+[[collections]]
+name = "search-index"
+type = "document"
+namespace = "app.data.local"
+derived = true
+```
+
+Правила: коллекция принадлежит одному namespace и наследует его класс; индексы объявляются
+заранее, потому что запрос без индекса отклоняется при установке, а не деградирует в
+полное сканирование; `derived = true` означает восстанавливаемые данные, которые не
+реплицируются. Совместимость версий схемы и миграции — в
+[базе данных приложения](../05-storage/02-database.md).
+
+### Экспортируемое API
+
+```toml
+[[components.api]]
+service = "library"
+
+  [[components.api.methods]]
+  name = "search"
+  audience = "profile-nodes"     # profile-nodes | linked-users | local-packages
+  idempotent = true
+```
+
+Вызов метода, чья аудитория не покрывает вызывающего, отклоняется до активации обработчика.
+Метод с `idempotent = false` не повторяется системой автоматически. Механизм — в
+[базовом стеке](../02-architecture/12-base-stack.md).
+
+### Представления
+
+```toml
+[[components]]
+id = "main-ui"
+type = "web-ui"
+entry = "ui/index.html"
+multi-view = false                # несколько окон одного приложения
+handles = ["kos://app/com.example.music/*", "audio/*"]
+```
+
+`multi-view = false` — значение по умолчанию: повторный запуск фокусирует существующее
+представление. `handles` объявляет ссылки и типы файлов, которые приложение готово
+открывать; система использует это для выбора приложения, а не приложение — для перехвата.
+
+### Фоновая работа
+
+```toml
+[components.background]
+checkpoint = "replicated"         # replicated | device-local
+max-runtime-ms = 600000
+activation-rate = "low"
+```
+
+Класс checkpoint определяет, может ли задача быть продолжена другой нодой: `device-local`
+привязывает её к устройству. Запрошенные бюджеты являются пожеланием: фактические лимиты
+задаёт политика ноды.
+
 Точный формат manifest фиксируется отдельным документом вместе с каталогом capabilities.
 
 
