@@ -1,0 +1,37 @@
+{
+	"nodes":[
+		{"id":"3ebf372063f2a885","type":"text","text":"","x":-298,"y":-449,"width":250,"height":150},
+		{"id":"5097e383745279da","type":"text","text":"System","x":-240,"y":-200,"width":250,"height":62,"color":"3"},
+		{"id":"db83748c44394ed6","type":"text","text":"Events","x":-479,"y":-194,"width":134,"height":50},
+		{"id":"f4793f3aeb4915cd","type":"text","text":"Log","x":-462,"y":-120,"width":117,"height":60},
+		{"id":"46281cb3dab79f6a","type":"text","text":"IoManager\nОбеспечивает доступ к IO для драйверов и всех желающих","x":-298,"y":-450,"width":250,"height":150},
+		{"id":"21a38de054782b76","type":"text","text":"IoSets","x":-230,"y":-580,"width":115,"height":60},
+		{"id":"8c03abd123daf9d1","type":"text","text":"ServicesManager","x":-587,"y":-370,"width":250,"height":60},
+		{"id":"421bfb38b4d3ef11","type":"text","text":"SystemConfigManager\nЗагрузка и сохранение системного конфига и конфигов для IO, драйверов и сервисов","x":165,"y":-242,"width":250,"height":245},
+		{"id":"bf3b0a1fc337cdb1","type":"text","text":"DriversManager\nОбеспечивает доступ\nк драйверам","x":40,"y":-471,"width":250,"height":101},
+		{"id":"435a43417b9abecd","type":"text","text":"FilesDriver\nHTTPDriver\nWSDriver\n...","x":165,"y":-730,"width":250,"height":150},
+		{"id":"2150838d381013da","type":"text","text":"IO\nFiles\nHttpServer\nWsServer\n...","x":-298,"y":-840,"width":250,"height":165},
+		{"id":"fccd651dbceeb575","type":"text","text":"PermissionsManager","x":-587,"y":-20,"width":250,"height":60},
+		{"id":"17ee6010643634a1","type":"text","text":"Starter\nDev, Linux, Android\nЗапускает System\nПодключает минимально необходимые IO, drivers, services","x":-230,"y":100,"width":234,"height":240},
+		{"id":"3b4d67767c62c476","type":"text","text":"PackageManager","x":-550,"y":100,"width":213,"height":60},
+		{"id":"8bf24e3213ee3e15","x":40,"y":100,"width":250,"height":60,"type":"text","text":"AppsManager"}
+	],
+	"edges":[
+		{"id":"d8dfa3cac460e573","fromNode":"5097e383745279da","fromSide":"top","toNode":"46281cb3dab79f6a","toSide":"bottom"},
+		{"id":"37cbe22d581a530e","fromNode":"5097e383745279da","fromSide":"left","toNode":"db83748c44394ed6","toSide":"right"},
+		{"id":"ff90887aeab882b0","fromNode":"5097e383745279da","fromSide":"left","toNode":"f4793f3aeb4915cd","toSide":"right"},
+		{"id":"32d9a69bf557896d","fromNode":"5097e383745279da","fromSide":"right","toNode":"bf3b0a1fc337cdb1","toSide":"left"},
+		{"id":"b77e9a8729dc7e05","fromNode":"5097e383745279da","fromSide":"bottom","toNode":"fccd651dbceeb575","toSide":"right"},
+		{"id":"c28098cef133f90c","fromNode":"46281cb3dab79f6a","fromSide":"top","toNode":"21a38de054782b76","toSide":"bottom"},
+		{"id":"04ac078c4dfaa852","fromNode":"21a38de054782b76","fromSide":"top","toNode":"2150838d381013da","toSide":"bottom","label":"Может быть удаленным"},
+		{"id":"a4a660388129c40f","fromNode":"bf3b0a1fc337cdb1","fromSide":"top","toNode":"21a38de054782b76","toSide":"right"},
+		{"id":"6dcc09013e3bdcdc","fromNode":"5097e383745279da","fromSide":"left","toNode":"8c03abd123daf9d1","toSide":"bottom"},
+		{"id":"66efbb431cfae31b","fromNode":"5097e383745279da","fromSide":"right","toNode":"421bfb38b4d3ef11","toSide":"left"},
+		{"id":"4c94a901034a0fe1","fromNode":"435a43417b9abecd","fromSide":"left","toNode":"21a38de054782b76","toSide":"right"},
+		{"id":"18fa2a997b6826fb","fromNode":"bf3b0a1fc337cdb1","fromSide":"top","toNode":"435a43417b9abecd","toSide":"bottom"},
+		{"id":"bd7476c5b2a46e54","fromNode":"421bfb38b4d3ef11","fromSide":"top","toNode":"bf3b0a1fc337cdb1","toSide":"bottom"},
+		{"id":"d114e059ac9487cb","fromNode":"17ee6010643634a1","fromSide":"top","toNode":"5097e383745279da","toSide":"bottom"},
+		{"id":"ed83eb792ab6b5e8","fromNode":"5097e383745279da","fromSide":"bottom","toNode":"3b4d67767c62c476","toSide":"right"},
+		{"id":"b0f4d62d850aebff","fromNode":"5097e383745279da","fromSide":"bottom","toNode":"8bf24e3213ee3e15","toSide":"top"}
+	]
+}
