@@ -7,7 +7,7 @@
 
 Связанные документы: [модель состояния](../05-storage/01-state-model.md),
 [база данных приложения](../05-storage/02-database.md), [VFS](../05-storage/03-vfs.md),
-[воркеры](./05-backend-wasm.md), [каталог capabilities](../04-capabilities/02-catalog.md).
+[воркеры](./05-backend-wasm.md), [каталог capabilities](../04-capabilities/02-catalog/00-index.md).
 
 ## Карта решений
 

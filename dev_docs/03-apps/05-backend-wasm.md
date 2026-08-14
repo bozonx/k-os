@@ -6,8 +6,8 @@
 
 Связанные документы: [модель приложения](./01-app-model.md), [жизненный цикл](./03-lifecycle.md),
 [размещение и исполнение](./08-placement-and-execution.md),
-[изоляция workers](../11-security/02-isolation.md),
-[данные приложения](./06-app-data-api.md), [каталог capabilities](../04-capabilities/02-catalog.md).
+[изоляция workers](../10-security/01-isolation.md),
+[данные приложения](./06-app-data-api.md), [каталог capabilities](../04-capabilities/02-catalog/00-index.md).
 
 ## Место воркера в приложении
 
