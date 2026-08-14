@@ -189,10 +189,13 @@ Worker обязан периодически проверять `cancelled` ил
 | `storage.local.read-write` | `storage/store` | 1.0 | v0 | + | + | + | + | нет |
 | `storage.replicated.read-write` | `storage/store` | 1.0 | v0 | + | + | + | + | нет |
 | `storage.cache.read-write` | `storage/store` | 1.0 | v0 | + | + | + | + | нет |
+| `storage.tmp.read-write` | `storage/store` | 1.0 | v0 | + | + | + | + | нет |
 | `secrets.read-write` | `storage/secrets` | 1.0 | v0 | + | + | + | + | нет |
 | `files.app.read-write` | `fs/files` | 1.0 | v0 | + | + | + | + | нет |
 | `files.user.read` / `.write` | `fs/files` | 1.0 | v0 | + | + | + | + | нет |
 | `files.external.<mount>.*` | `fs/files` | 1.0 | v0 | + | + | ? | + | нет |
+| `files.volumes` | `fs/volumes` | 1.0 | v0 | + | + | + | + | нет |
+| `storage.usage` | `storage/usage` | 1.0 | v0 | + | + | + | + | нет |
 | `net.http:<host>` | `net/http` | 1.0 | v0 | + | + | + | + | да |
 | `net.ws:<host>` | `net/websocket` | 1.0 | v0 | + | + | + | + | нет |
 | `api.export` | `net/api-export` | 1.0 | v0 | + | + | + | + | — |

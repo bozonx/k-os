@@ -12,7 +12,8 @@ interface nodes {
   record descriptor {
     id: node-id,
     name: string,
-    role: string,                 // device | cloud | relay
+    role: string,                 // device | cloud | appliance | relay
+    storage-policy: string,       // full-mirror | working-set | system-only | none
     platform: string,
     online: bool,
     last-seen: instant,

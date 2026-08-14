@@ -109,6 +109,7 @@ grep -r --include='*.md' -m1 '^Статус:' . | sort
 | [02-database](./05-storage/02-database.md) | база данных приложения поверх слоя синхронизации |
 | [03-vfs](./05-storage/03-vfs.md) | виртуальная файловая система: контракт |
 | [04-blobs-and-materialization](./05-storage/04-blobs-and-materialization.md) | blob store, чанкование, selective sync, конфликты |
+| [05-garbage-and-quotas](./05-storage/05-garbage-and-quotas.md) | владение данными, уборка после пакетов, сроки хранения, учёт места |
 
 ### 06. Сеть пользователя
 

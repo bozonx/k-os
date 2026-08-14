@@ -5,13 +5,13 @@
 
 Смежные документы: [правила каталога](./00-index.md), [общие типы](./01-common-types.md), [данные приложения](../../03-apps/06-app-data-api.md).
 
-## Хранилище — `storage.local.*`, `storage.replicated.*`, `storage.cache.*` — v0
+## Хранилище — `storage.local.*`, `storage.replicated.*`, `storage.cache.*`, `storage.tmp.*` — v0
 
 Приложение выбирает семантику данных, а не алгоритм репликации.
 
 ```wit
 interface store {
-  enum namespace { local, replicated, cache }
+  enum namespace { local, replicated, cache, tmp }
   enum consistency { local-first, coordinated }
 
   record open-options {
@@ -70,9 +70,77 @@ interface store {
 - `commit` транзакции атомарно фиксирует изменение и запись для будущей репликации. Отдельного вызова «синхронизировать» не существует и существовать не должно;
 - `consistency: coordinated` требует lease и возвращает `unavailable` при отсутствии связи. Молчаливого понижения до `local-first` не происходит;
 - `watch` — основной способ построения реактивного UI: изменение с другого устройства приходит тем же каналом, что и локальное;
-- `cache` может быть очищен в любой момент; чтение отсутствующего ключа не является ошибкой приложения.
+- `cache` может быть очищен в любой момент; чтение отсутствующего ключа не является ошибкой приложения;
+- `tmp` очищается при перезапуске ноды целиком и не участвует в учёте квоты приложения. Данные, которые дорого получить заново, там хранить не следует — для них существует `cache`.
 
 Совместное редактирование текста в v0 отсутствует: для него нужен тип последовательности, вводимый отдельно.
+
+## Настройки — `config.*` — v0
+
+Слоистый вид на `storage.replicated` и `storage.local`, а не отдельное хранилище. Ключи и значения по умолчанию объявляются в манифесте пакета.
+
+```wit
+interface config {
+  enum layer { default-value, profile, node }
+
+  get:      func(key: string) -> result<option<value>, error>;   // с учётом слоёв
+  origin:   func(key: string) -> result<layer, error>;
+  set:      func(key: string, v: value) -> result<_, error>;     // слой profile
+  set-local: func(key: string, v: value) -> result<_, error>;    // слой node
+  clear-local: func(key: string) -> result<_, error>;
+  snapshot: func() -> result<list<tuple<string, value>>, error>;
+
+  resource change-feed { next: func() -> result<option<change>, error>; close: func(); }
+  watch: func() -> result<change-feed, error>;
+}
+```
+
+Существенные свойства:
+
+- отдельного права нет: `config` работает поверх уже выданных `storage.replicated.*` и `storage.local.*`. Приложение без права на реплицируемое хранилище получает только слои `default-value` и `node`;
+- запись валидируется по схеме из манифеста; значение, не соответствующее схеме, отклоняется, а не сохраняется до первого чтения;
+- слой `node` не реплицируется и переживает изменение значения профиля: переопределение на устройстве не сбрасывается при правке общего значения;
+- системная оболочка читает схему и значения без запуска приложения, поэтому набор ключей является публичной частью пакета.
+
+## Volumes и учёт места — `files.volumes`, `storage.usage` — v0
+
+```wit
+interface volumes {
+  enum index-mode { full, members-only }
+
+  record volume {
+    id: string,
+    path: string,
+    members: list<node-id>,
+    index: index-mode,
+    files: u64,
+    bytes: u64,
+  }
+
+  list: func() -> result<list<volume>, error>;
+  of-path: func(path: string) -> result<option<volume>, error>;
+  load-index: func(id: string, deadline-ms: duration-ms) -> result<_, error>;
+}
+
+interface usage {
+  record entry {
+    owner: string,            // user | pkg:<id> | system
+    class: string,            // replicated | local | cache | tmp | files | trash | versions
+    node: node-id,
+    logical-bytes: u64,       // сумма размеров
+    stored-bytes: u64,        // занятое место с учётом дедупликации
+    staleness-ms: u64,
+  }
+  own:  func() -> result<list<entry>, error>;          // без дополнительных прав
+  all:  func() -> result<list<entry>, error>;          // требует storage.usage
+}
+```
+
+Существенные свойства:
+
+- создание и изменение volume — действие пользователя в оболочке, а не вызов приложения: приложение может только прочитать состав и запросить загрузку индекса;
+- `logical-bytes` и `stored-bytes` возвращаются раздельно, потому что дедупликация чанков делает сумму по владельцам больше физического объёма. Подстановка одного вместо другого даёт неверный ответ на вопрос «сколько освободится»;
+- `own` доступен любому пакету и показывает только его собственное потребление.
 
 ## Секреты — `secrets.read-write` — v0
 
@@ -97,7 +165,8 @@ interface files {
   enum entry-kind { file, directory }
 
   enum materialization {
-    materialized, metadata-only, fetching, partial, evicted, conflicted, unavailable
+    materialized, metadata-only, fetching, partial, evicted, conflicted, unavailable,
+    index-not-local        // каталог: volume в режиме members-only, индекс не загружен
   }
 
   record stat {

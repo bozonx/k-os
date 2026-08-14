@@ -53,7 +53,7 @@ package ID: строгий CSP формирует доверенный runtime, 
 Документ и статические ресурсы приложения загружаются **из пакета через VFS**, а не из сети:
 
 ```text
-kos-app://<package-id>/index.html   →  /apps/<package-id>/ui/index.html
+kos-app://<package-id>/index.html   →  /app/<package-id>/code/ui/index.html
 ```
 
 Следствия:
