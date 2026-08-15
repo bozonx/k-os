@@ -76,10 +76,11 @@ grep -r --include='*.md' -m1 '^Статус:' . | sort
 | [04-frontend](./03-apps/04-frontend.md) | UI приложения: размещение и требования к контейнеру |
 | [05-backend-wasm](./03-apps/05-backend-wasm.md) | необязательный backend приложения в WebAssembly |
 | [06-app-data-api](./03-apps/06-app-data-api.md) | изолированные данные приложения глазами разработчика |
-| [07-distribution](./03-apps/07-distribution.md) | установка, материализация, обновление, откат |
+| [07-distribution](./03-apps/07-distribution.md) | установка, материализация, обновление, откат, раздача артефактов между нодами |
 | [08-placement-and-execution](./03-apps/08-placement-and-execution.md) | execution scope и выбор ноды исполнения |
 | [09-realtime](./03-apps/09-realtime.md) | realtime-возможности, доступные приложению |
 | [10-events-and-push](./03-apps/10-events-and-push.md) | доставка событий и push-уведомлений без дублирования |
+| [11-package-sources](./03-apps/11-package-sources.md) | издатели, фиды, каталоги приложений и порядок их появления |
 
 ### 04. Права и публичное API
 
@@ -128,6 +129,7 @@ grep -r --include='*.md' -m1 '^Статус:' . | sort
 | [08-coordination](./06-network/08-coordination.md) | leases, лидерство, fencing token |
 | [09-network-lifecycle](./06-network/09-network-lifecycle.md) | создание сети, подключение ноды, коды подключения, headless-сценарии |
 | [10-nat-and-reachability](./06-network/10-nat-and-reachability.md) | NAT, проброс портов, достижимость нод |
+| [11-public-artifact-cache](./06-network/11-public-artifact-cache.md) | анонимная раздача публичного содержимого между нодами разных пользователей |
 
 ### 07. Взаимодействие пользователей
 
@@ -154,6 +156,7 @@ grep -r --include='*.md' -m1 '^Статус:' . | sort
 | [03-mobile](./09-clients/03-mobile.md) | Android и мобильный Linux, режим launcher |
 | [04-cloud-node](./09-clients/04-cloud-node.md) | облачная нода |
 | [05-system-shell](./09-clients/05-system-shell.md) | системная оболочка: панель, launcher, диалоги, настройки |
+| [06-system-update](./09-clients/06-system-update.md) | обновление runtime, неоднородные версии нод, сходимость профиля |
 
 ### 10. Безопасность
 
